@@ -35,6 +35,8 @@ pub enum Command {
     Turn3DOn,
     Turn3DOff,
     GetServicesList,
+    CreateAlertSetBacklight(i8),
+    CloseAlert(String),
 }
 pub struct CommandResponse {
     pub id: u8,
@@ -186,6 +188,28 @@ pub fn create_command(id: u8, cmd: &Command) -> Option<CommandRequest> {
             r#type: String::from("request"),
             uri: String::from("ssap://com.webos.service.update/getCurrentSWInformation"),
             payload: None,
+        }),
+        Command::CreateAlertSetBacklight(percent) => Some(CommandRequest {
+            id,
+            r#type: String::from("request"),
+            uri: String::from("ssap://system.notifications/createAlert"),
+            payload: Some(json!({
+                "message": format!("Setting backlight to {}", percent),
+                "buttons": [{ "label": "OK" }],
+                "onclose": {
+                    "uri": "luna://com.webos.settingsservice/setSystemSettings",
+                    "params": {
+                        "category": "picture",
+                        "settings": { "backlight": percent }
+                    }
+                },
+            })),
+        }),
+        Command::CloseAlert(alert_id) => Some(CommandRequest {
+            id,
+            r#type: String::from("request"),
+            uri: String::from("ssap://system.notifications/closeAlert"),
+            payload: Some(json!({ "alertId": alert_id })),
         }),
     }
 }
